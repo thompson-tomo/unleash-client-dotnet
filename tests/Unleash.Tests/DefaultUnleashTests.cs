@@ -142,8 +142,70 @@ namespace Unleash.Tests
             // Assert
             result.Should().BeEquivalentTo(appname);
         }
+
+        private static IEnumerable<KeyValuePair<string, string>> Defaults(string name)
+        {
+            return new List<KeyValuePair<string, string>>()
+            {
+                new KeyValuePair<string, string>("Unleash:AppName", name)
+            };
+        }
+
+        public static IUnleash InjectUnleash(string name, ToggleCollection state)
+        {
+            var fakeHttpClientFactory = A.Fake<IHttpClientFactory>();
+            var fakeHttpMessageHandler = new TestHttpMessageHandler();
+            var httpClient = new HttpClient(fakeHttpMessageHandler) { BaseAddress = new Uri("http://localhost") };
+            var fakeScheduler = A.Fake<IUnleashScheduledTaskManager>();
+            var fakeFileSystem = new MockFileSystem();
+            var toggleState = Newtonsoft.Json.JsonConvert.SerializeObject(state);
+
+            A.CallTo(() => fakeHttpClientFactory.Create(A<Uri>._)).Returns(httpClient);
+            A.CallTo(() => fakeScheduler.Configure(A<IEnumerable<IUnleashScheduledTask>>._, A<CancellationToken>._)).Invokes(action =>
+            {
+                var task = ((IEnumerable<IUnleashScheduledTask>)action.Arguments[0]).First();
+                task.ExecuteAsync((CancellationToken)action.Arguments[1]).Wait();
+            });
+
+            fakeHttpMessageHandler.Response = new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(toggleState, Encoding.UTF8, "application/json"),
+                Headers =
+                {
+                    ETag = new EntityTagHeaderValue("\"123\"")
+                }
+            };
+
+            IConfiguration config  = new ConfigurationBuilder()
+                .AddInMemoryCollection(Defaults(name))
+                .Build();
+
+            var services = new ServiceCollection()
+                .AddOptions()
+                .AddUnleash(new UnleashActions()
+                {
+                    HttpClientFactory = fakeHttpClientFactory,
+                    ScheduledTaskManager = fakeScheduler,
+                    FileSystem = fakeFileSystem
+                });
+
+            services.AddScoped<IConfiguration>(_ => config);
+
+            // build the service provider
+            var serviceProvider = services.BuildServiceProvider();
+
+            return serviceProvider.GetService<IUnleash>();
+        }
+
         public static IUnleash CreateUnleash(string name, ToggleCollection state, bool inject)
         {
+#if !NET45 && !NET451 && !NET46
+            if (inject)
+            {
+                return InjectUnleash(name, state);
+            }
+#endif
             var fakeHttpClientFactory = A.Fake<IHttpClientFactory>();
             var fakeHttpMessageHandler = new TestHttpMessageHandler();
             var httpClient = new HttpClient(fakeHttpMessageHandler) { BaseAddress = new Uri("http://localhost") };
