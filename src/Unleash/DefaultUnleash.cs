@@ -2,6 +2,9 @@ namespace Unleash
 {
     using Internal;
     using Logging;
+#if !NET45 && !NET451 && !NET46
+    using Microsoft.Extensions.Options;
+#endif
     using Strategies;
     using System;
     using System.Collections.Generic;
@@ -41,13 +44,24 @@ namespace Unleash
 
         private readonly WarnOnce warnOnce;
 
+#if !NET45 && !NET451 && !NET46
+
+        ///// <summary>
+        ///// Initializes a new instance of Unleash client.
+        ///// </summary>
+        ///// <param name="configuration">Unleash settings</param>
+        public DefaultUnleash(IOptions<UnleashOptions> options, IOptions<UnleashActions> actions)
+            : this(new UnleashSettings(options, actions), null, actions.Value.Strategies)
+        {
+        }
+#endif
         ///// <summary>
         ///// Initializes a new instance of Unleash client with a set of default strategies.
         ///// </summary>
         ///// <param name="config">Unleash settings</param>
         ///// <param name="strategies">Additional custom strategies.</param>
         public DefaultUnleash(UnleashSettings settings, params IStrategy[] strategies)
-            : this(settings, overrideDefaultStrategies: false, strategies)
+            : this(settings, overrideDefaultStrategies: null, strategies)
         { }
 
         ///// <summary>
@@ -56,7 +70,7 @@ namespace Unleash
         ///// <param name="config">Unleash settings</param>
         ///// <param name="overrideDefaultStrategies">When true, it overrides the default strategies.</param>
         ///// <param name="strategies">Custom strategies.</param>
-        public DefaultUnleash(UnleashSettings settings, bool overrideDefaultStrategies, params IStrategy[] strategies)
+        public DefaultUnleash(UnleashSettings settings, bool? overrideDefaultStrategies = null, params IStrategy[] strategies)
         {
             var currentInstanceNo = Interlocked.Increment(ref InitializedInstanceCount);
 
@@ -67,7 +81,8 @@ namespace Unleash
             var settingsValidator = new UnleashSettingsValidator();
             settingsValidator.Validate(settings);
 
-            strategies = SelectStrategies(strategies, overrideDefaultStrategies);
+            overrideDefaultStrategies = overrideDefaultStrategies.HasValue ? overrideDefaultStrategies : settings.OverrideDefaultStrategies;
+            strategies = SelectStrategies(strategies, overrideDefaultStrategies.Value);
             strategyMap = BuildStrategyMap(strategies);
 
             services = new UnleashServices(settings, EventConfig, strategyMap);
@@ -229,6 +244,7 @@ namespace Unleash
                 return defaultVariant;
             }
         }
+        public string GetAppName() => settings.AppName;
 
         public Variant GetVariant(string toggleName)
         {

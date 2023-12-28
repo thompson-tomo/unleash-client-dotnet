@@ -44,6 +44,13 @@ namespace Unleash
         /// <param name="defaultSetting">Default value to return if toggle is not defined</param>
         bool IsEnabled(string toggleName, UnleashContext context, bool defaultSetting);
 
+
+        /// <summary>
+        /// Get the app name as configured in unleash.
+        /// </summary>
+        /// <returns>The name of the app in unleash</returns>
+        string GetAppName();
+
         /// <summary>
         /// Get a weighted variant from a feature that is available.
         /// </summary>

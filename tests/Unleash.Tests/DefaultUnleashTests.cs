@@ -15,6 +15,9 @@ using Unleash.Strategies;
 using Unleash.Tests.Mock;
 using Unleash.Variants;
 using static Unleash.Tests.Specifications.TestFactory;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Unleash.Extensions;
 
 namespace Unleash.Tests
 {
@@ -57,7 +60,7 @@ namespace Unleash.Tests
         }
 
         [Test]
-        public void IsEnabled_Flexible_Strategy_Test()
+        public void IsEnabled_Flexible_Strategy_Test([Values(false, true)] bool inject)
         {
             // Arrange
             var appname = "testapp";
@@ -70,7 +73,7 @@ namespace Unleash.Tests
 
             var state = new ToggleCollection(toggles);
             state.Version = 2;
-            var unleash = CreateUnleash(appname, state);
+            var unleash = CreateUnleash(appname, state, inject);
 
             // Act
             var result = unleash.IsEnabled("test_toggle");
@@ -80,7 +83,7 @@ namespace Unleash.Tests
         }
 
         [Test]
-        public void IsEnabled_Gradual_Rollout_Random_Strategy_Test()
+        public void IsEnabled_Gradual_Rollout_Random_Strategy_Test([Values(false, true)] bool inject)
         {
             // Arrange
             var appname = "testapp";
@@ -93,7 +96,7 @@ namespace Unleash.Tests
 
             var state = new ToggleCollection(toggles);
             state.Version = 2;
-            var unleash = CreateUnleash(appname, state);
+            var unleash = CreateUnleash(appname, state, inject);
 
             // Act
             var result = unleash.IsEnabled("test_toggle");
@@ -103,7 +106,7 @@ namespace Unleash.Tests
         }
 
         [Test]
-        public void IsEnabled_Gradual_Rollout_UserId_Strategy_Test()
+        public void IsEnabled_Gradual_Rollout_UserId_Strategy_Test([Values(false, true)] bool inject)
         {
             // Arrange
             var appname = "testapp";
@@ -116,7 +119,7 @@ namespace Unleash.Tests
 
             var state = new ToggleCollection(toggles);
             state.Version = 2;
-            var unleash = CreateUnleash(appname, state);
+            var unleash = CreateUnleash(appname, state, inject);
 
             // Act
             var result = unleash.IsEnabled("test_toggle");
@@ -125,7 +128,21 @@ namespace Unleash.Tests
             result.Should().BeFalse();
         }
 
-        public static IUnleash CreateUnleash(string name, ToggleCollection state)
+        [Test]
+        public void SetupUnleash_via_DI_Test([Values(false, true)] bool inject)
+        {
+            // Arrange
+            var appname = $"testapp-{Guid.NewGuid()}";
+            var unleash = CreateUnleash(appname, null, inject);
+
+
+            // Act
+            var result = unleash.GetAppName();
+
+            // Assert
+            result.Should().BeEquivalentTo(appname);
+        }
+        public static IUnleash CreateUnleash(string name, ToggleCollection state, bool inject)
         {
             var fakeHttpClientFactory = A.Fake<IHttpClientFactory>();
             var fakeHttpMessageHandler = new TestHttpMessageHandler();
