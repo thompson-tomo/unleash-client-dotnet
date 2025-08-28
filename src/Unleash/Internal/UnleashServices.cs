@@ -108,7 +108,7 @@ namespace Unleash
 
             var scheduledTasks = new List<IUnleashScheduledTask>(3);
 
-            if (settings.ExperimentalStreamingUri == null)
+            if (!settings.ExperimentalUseStreaming)
             {
                 var fetchFeatureTogglesTask = new FetchFeatureTogglesTask(
                     engine,
@@ -133,7 +133,9 @@ namespace Unleash
                     settings,
                     apiClient,
                     engine,
-                    eventConfig
+                    eventConfig,
+                    backupFile,
+                    settings.FileSystem
                 );
                 Task.Run(() => StreamingFeatureFetcher.StartAsync().ConfigureAwait(false));
             }
