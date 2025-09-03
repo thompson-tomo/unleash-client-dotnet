@@ -19,9 +19,6 @@ namespace Unleash
     {
         internal readonly Encoding Encoding = Encoding.UTF8;
 
-        internal readonly string FeatureToggleFilename = "unleash.toggles.json";
-        internal readonly string EtagFilename = "unleash.etag.txt";
-
         /// <summary>
         /// Gets the version of unleash client running.
         /// </summary>
@@ -180,9 +177,6 @@ namespace Unleash
             sb.AppendLine($"Send metrics interval: {metricsInterval}");
 
             sb.AppendLine($"Local storage folder: {LocalStorageFolder()}");
-            sb.AppendLine($"Backup file: {FeatureToggleFilename}");
-            sb.AppendLine($"Etag file: {EtagFilename}");
-
             sb.AppendLine($"HttpClient Factory: {HttpClientFactory.GetType().Name}");
             sb.AppendLine($"Context provider: {UnleashContextProvider.GetType().Name}");
 
@@ -190,30 +184,6 @@ namespace Unleash
             sb.AppendLine($"Bootstrap provider: {ToggleBootstrapProvider?.GetType().Name ?? "null"}");
 
             return sb.ToString();
-        }
-
-        public string GetFeatureToggleFilePath()
-        {
-            var tempFolder = LocalStorageFolder();
-            return Path.Combine(tempFolder, PrependFileName(FeatureToggleFilename));
-        }
-
-        public string GetFeatureToggleETagFilePath()
-        {
-            var tempFolder = LocalStorageFolder();
-            return Path.Combine(tempFolder, PrependFileName(EtagFilename));
-        }
-
-        private string PrependFileName(string filename)
-        {
-            var invalidFileNameChars = Path.GetInvalidFileNameChars();
-
-            var extension = Path.GetExtension(filename);
-            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
-
-            return new string($"{fileNameWithoutExtension}-{AppName}-{InstanceTag}-{SdkVersion}{extension}"
-                .Where(c => !invalidFileNameChars.Contains(c))
-                .ToArray());
         }
 
         public void UseBootstrapUrlProvider(string path, bool shouldThrowOnError, Dictionary<string, string> customHeaders = null)

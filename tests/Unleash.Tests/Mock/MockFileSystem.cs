@@ -40,6 +40,35 @@ namespace Unleash.Tests.Mock
             }
             return content!;
         }
+
+        public void Move(string sourcePath, string destPath)
+        {
+            if (_fileSystem.TryGetValue(sourcePath, out var content))
+            {
+                _fileSystem.Remove(sourcePath);
+                _fileSystem[destPath] = content;
+            }
+        }
+
+        public void Replace(string sourceFileName, string destinationFileName, string destinationBackupFileName)
+        {
+            if (_fileSystem.TryGetValue(sourceFileName, out var content))
+            {
+                _fileSystem.Remove(sourceFileName);
+                _fileSystem[destinationFileName] = content;
+                _fileSystem[destinationBackupFileName] = content;
+            }
+        }
+
+        public void Delete(string path)
+        {
+            _fileSystem.Remove(path);
+        }
+
+        internal List<string> ListFiles()
+        {
+            return _fileSystem.Keys.ToList();
+        }
     }
 
     class TrackingWriteStream : MemoryStream
